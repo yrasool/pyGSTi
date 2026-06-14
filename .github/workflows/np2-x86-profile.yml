@@ -1,0 +1,63 @@
+# THROWAWAY workflow — x86_64 profiling of the numpy-2 errgen-composition slowdown.
+# Lives only on branch tmp-np2-x86-profile; delete the branch when done.
+name: numpy2 x86 errgen profile (throwaway)
+
+on:
+  push:
+    branches: [ tmp-np2-x86-profile ]
+  workflow_dispatch:
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Environment info
+        run: |
+          echo "arch: $(uname -m)"; echo "nproc: $(nproc)"
+          lscpu | grep -E "Model name|^CPU\(s\)|Thread|Core" || true
+
+      - name: Install pygsti + deps (numpy 2.4.6)
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy==2.4.6" scipy stim sympy plotly pandas networkx tqdm \
+            cython "setuptools>=61" wheel "setuptools_scm>=6.2" pytest pytest-xdist threadpoolctl
+          pip install -e . --no-build-isolation
+          python -c "import numpy; print('numpy', numpy.__version__); numpy.show_config()"
+
+      - name: "[A] numpy 2.4.6, DEFAULT threads (reproduce + cProfile + microbench)"
+        run: python .ci-tmp/np2_profile_harness.py 6000 --profile
+
+      - name: "[B] numpy 2.4.6, OPENBLAS/OMP/MKL threads=1 (hypothesis test)"
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
+          MKL_NUM_THREADS: '1'
+        run: python .ci-tmp/np2_profile_harness.py 6000 --profile
+
+      - name: "[C] numpy 1.26.4 control, DEFAULT threads"
+        run: |
+          pip install "numpy==1.26.4"
+          python .ci-tmp/np2_profile_harness.py 6000 --profile
+
+      - name: "[D] REAL pytest ground-truth, numpy 2.4.6 DEFAULT threads (bounded)"
+        run: |
+          pip install "numpy==2.4.6"
+          T="test/unit/tools/test_errgenproptools.py::ErrgenCompositionCommutationTester"
+          timeout 1500 python -m pytest "$T::test_errorgen_composition" "$T::test_iterative_error_generator_composition" \
+            -p no:cacheprovider -q --no-header -o addopts="" --durations=0 || echo "pytest exit $?"
+
+      - name: "[E] REAL pytest, numpy 2.4.6 threads=1 (bounded)"
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
+          MKL_NUM_THREADS: '1'
+        run: |
+          T="test/unit/tools/test_errgenproptools.py::ErrgenCompositionCommutationTester"
+          timeout 1500 python -m pytest "$T::test_errorgen_composition" "$T::test_iterative_error_generator_composition" \
+            -p no:cacheprovider -q --no-header -o addopts="" --durations=0 || echo "pytest exit $?"
