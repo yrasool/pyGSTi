@@ -4,7 +4,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -41,5 +41,3 @@ While the above metrics are the usually the most familiar, all of them suffer be
 print("Eigenvalue Process Fidelity = ", float(rptbl.eigenvalue_entanglement_infidelity(ideal_model[('Gxpi2',0)], noisy_model[('Gxpi2',0)], basis)))
 print("Diamond Distance = ", rptbl.eigenvalue_diamondnorm(ideal_model[('Gxpi2',0)], noisy_model[('Gxpi2',0)], basis))
 ```
-
-

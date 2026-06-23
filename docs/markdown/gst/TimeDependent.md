@@ -4,7 +4,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.3
+    jupytext_version: 1.19.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -205,5 +205,3 @@ print("Objective function at data-generating model = ",objfn.fn())
 objfn2 = builder.build(final_mdl, data.dataset, list(data.dataset.keys()))
 print("Objective function at best-fit (GST) model (should be lower) = ",objfn2.fn())
 ```
-
-
